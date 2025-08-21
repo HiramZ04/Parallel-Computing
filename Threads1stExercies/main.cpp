@@ -3,6 +3,8 @@
 #include <memory>
 #include <vector>
 #include <random>
+#include <algorithm>  
+#include <utility>    
 
 std::random_device rd;
 std::mt19937 gen(rd());
@@ -33,26 +35,32 @@ int main() {
 
     for (int i = 0; i < TOTAL_THREADS; i++) {
         summations[i] = std::make_shared<Summation>();
-        threads[i] = std::make_shared<std::thread>([&, i](){summations[i]->doSum();});
+        threads[i] = std::make_shared<std::thread>([&, i](){ summations[i]->doSum(); });
     }
 
     for (int i = 0; i < TOTAL_THREADS; i++) {
         threads[i]->join();
     }
 
-    int maxSum = 0;
-    int maxId;
+   
+    std::vector<std::pair<int,int>> results; 
+    results.reserve(TOTAL_THREADS);
 
     for (int i = 0; i < TOTAL_THREADS; i++) {
         std::cout << "El thread #" << i + 1 << " sumo: " << summations[i]->Total() << std::endl;
-
-        if (summations[i]->Total() > maxSum) {
-            maxSum = summations[i]->Total();
-            maxId = i;
-        }
+        results.emplace_back(summations[i]->Total(), i);
     }
 
-    std::cout << "El thread con mayor puntuacion fue el #" << maxId + 1 << " y sumo: " << summations[maxId]->Total() << std::endl;
+    std::sort(results.begin(), results.end(),
+              [](const std::pair<int,int>& a, const std::pair<int,int>& b) {
+                  return a.first > b.first; 
+              });
+
+    int maxSum = results.front().first;
+    int maxId  = results.front().second;
+
+    std::cout << "El thread con mayor puntuacion fue el #" << maxId + 1
+              << " y sumo: " << maxSum << std::endl;
 
     return 0;
 }
